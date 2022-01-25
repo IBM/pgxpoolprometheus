@@ -31,69 +31,74 @@ type mockStater struct {
 	mock.Mock
 }
 
-func (m *mockStater) stat() stat {
-	return m.Called().Get(0).(stat)
+func (m *mockStater) Stat() pgxStat {
+	return m.Called().Get(0).(pgxStat)
 }
 
-type mockStat struct {
+var (
+	_ pgxStat = (*pgxStatMock)(nil)
+	_ pgxStat = (*noOpStat)(nil)
+)
+
+type pgxStatMock struct {
 	mock.Mock
 }
 
-func (m *mockStat) acquireCount() float64 {
-	return m.Called().Get(0).(float64)
+func (m *pgxStatMock) AcquireCount() int64 {
+	return m.Called().Get(0).(int64)
 }
-func (m *mockStat) acquireDuration() float64 {
-	return m.Called().Get(0).(float64)
+func (m *pgxStatMock) AcquireDuration() time.Duration {
+	return m.Called().Get(0).(time.Duration)
 }
-func (m *mockStat) acquiredConns() float64 {
-	return m.Called().Get(0).(float64)
+func (m *pgxStatMock) AcquiredConns() int32 {
+	return m.Called().Get(0).(int32)
 }
-func (m *mockStat) canceledAcquireCount() float64 {
-	return m.Called().Get(0).(float64)
+func (m *pgxStatMock) CanceledAcquireCount() int64 {
+	return m.Called().Get(0).(int64)
 }
-func (m *mockStat) constructingConns() float64 {
-	return m.Called().Get(0).(float64)
+func (m *pgxStatMock) ConstructingConns() int32 {
+	return m.Called().Get(0).(int32)
 }
-func (m *mockStat) emptyAcquireCount() float64 {
-	return m.Called().Get(0).(float64)
+func (m *pgxStatMock) EmptyAcquireCount() int64 {
+	return m.Called().Get(0).(int64)
 }
-func (m *mockStat) idleConns() float64 {
-	return m.Called().Get(0).(float64)
+func (m *pgxStatMock) IdleConns() int32 {
+	return m.Called().Get(0).(int32)
 }
-func (m *mockStat) maxConns() float64 {
-	return m.Called().Get(0).(float64)
+func (m *pgxStatMock) MaxConns() int32 {
+	return m.Called().Get(0).(int32)
 }
-func (m *mockStat) totalConns() float64 {
-	return m.Called().Get(0).(float64)
+func (m *pgxStatMock) TotalConns() int32 {
+	return m.Called().Get(0).(int32)
 }
 
 type noOpStat struct{}
 
-func (m noOpStat) acquireCount() float64 {
+func (m noOpStat) AcquireCount() int64 {
 	return 0
 }
-func (m noOpStat) acquireDuration() float64 {
+func (m noOpStat) AcquireDuration() time.Duration {
+	return time.Second * 0
+}
+func (m noOpStat) AcquiredConns() int32 {
 	return 0
 }
-func (m noOpStat) acquiredConns() float64 {
+func (m noOpStat) CanceledAcquireCount() int64 {
 	return 0
 }
-func (m noOpStat) canceledAcquireCount() float64 {
+func (m noOpStat) ConstructingConns() int32 {
 	return 0
 }
-func (m noOpStat) constructingConns() float64 {
+func (m noOpStat) EmptyAcquireCount() int64 {
 	return 0
 }
-func (m noOpStat) emptyAcquireCount() float64 {
+func (m noOpStat) IdleConns() int32 {
 	return 0
 }
-func (m noOpStat) idleConns() float64 {
+func (m noOpStat) MaxConns() int32 {
 	return 0
 }
-func (m noOpStat) maxConns() float64 {
-	return 0
-}
-func (m noOpStat) totalConns() float64 {
+func (m noOpStat) TotalConns() int32 {
 	return 0
 }
 
@@ -104,8 +109,9 @@ func TestDescribeDescribesAllAvailableStats(t *testing.T) {
 	expectedDescriptorCount := 9
 	timeout := time.After(time.Second * 5)
 	stater := &mockStater{}
-	stater.On("stat").Return(noOpStat{})
-	testObject := newCollector(stater, labels)
+	stater.On("Stat").Return(noOpStat{})
+	statFn := func() pgxStat { return stater.Stat() }
+	testObject := newCollector(statFn, labels)
 
 	ch := make(chan *prometheus.Desc)
 	go testObject.Describe(ch)
@@ -132,7 +138,7 @@ func TestDescribeDescribesAllAvailableStats(t *testing.T) {
 
 func TestCollectCollectsAllAvailableStats(t *testing.T) {
 	expectedAcquireCount := float64(1)
-	expectedAcquireDuration := float64(2)
+	expectedAcquireDuration := float64(2e+09)
 	expectedAcquiredConns := float64(3)
 	expectedCanceledAcquireCount := float64(4)
 	expectedConstructingConns := float64(5)
@@ -140,21 +146,23 @@ func TestCollectCollectsAllAvailableStats(t *testing.T) {
 	expectedIdleConns := float64(7)
 	expectedMaxConns := float64(8)
 	expectedTotalConns := float64(9)
-	mockStats := &mockStat{}
-	mockStats.On("acquireCount").Return(expectedAcquireCount)
-	mockStats.On("acquireDuration").Return(expectedAcquireDuration)
-	mockStats.On("acquiredConns").Return(expectedAcquiredConns)
-	mockStats.On("canceledAcquireCount").Return(expectedCanceledAcquireCount)
-	mockStats.On("constructingConns").Return(expectedConstructingConns)
-	mockStats.On("emptyAcquireCount").Return(expectedEmptyAcquireCount)
-	mockStats.On("idleConns").Return(expectedIdleConns)
-	mockStats.On("maxConns").Return(expectedMaxConns)
-	mockStats.On("totalConns").Return(expectedTotalConns)
+
+	mockStats := &pgxStatMock{}
+	mockStats.On("AcquireCount").Return(int64(1))
+	mockStats.On("AcquireDuration").Return(time.Second * 2)
+	mockStats.On("AcquiredConns").Return(int32(3))
+	mockStats.On("CanceledAcquireCount").Return(int64(4))
+	mockStats.On("ConstructingConns").Return(int32(5))
+	mockStats.On("EmptyAcquireCount").Return(int64(6))
+	mockStats.On("IdleConns").Return(int32(7))
+	mockStats.On("MaxConns").Return(int32(8))
+	mockStats.On("TotalConns").Return(int32(9))
 	expectedMetricCount := 9
 	timeout := time.After(time.Second * 5)
 	stater := &mockStater{}
-	stater.On("stat").Return(mockStats)
-	testObject := newCollector(stater, nil)
+	stater.On("Stat").Return(mockStats)
+	staterfn := func() pgxStat { return stater.Stat() }
+	testObject := newCollector(staterfn, nil)
 
 	ch := make(chan prometheus.Metric)
 	go testObject.Collect(ch)

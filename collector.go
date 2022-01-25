@@ -17,13 +17,36 @@ package pgxpoolprometheus
  */
 
 import (
+	"time"
+
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+var (
+	_ prometheus.Collector = (*Collector)(nil)
+	_ pgxStat              = (*pgxpool.Stat)(nil)
+)
+
+// pgxStat is an interface implemented by pgxpool.Stat.
+type pgxStat interface {
+	AcquireCount() int64
+	AcquireDuration() time.Duration
+	AcquiredConns() int32
+	CanceledAcquireCount() int64
+	ConstructingConns() int32
+	EmptyAcquireCount() int64
+	IdleConns() int32
+	MaxConns() int32
+	TotalConns() int32
+}
+
+// staterFunc should return a struct that implements pgxStat.
+type staterFunc func() pgxStat
+
 // Collector is a prometheus.Collector that will collect the nine statistics produced by pgxpool.Stat.
 type Collector struct {
-	stater stater
+	stat staterFunc
 
 	acquireCountDesc         *prometheus.Desc
 	acquireDurationDesc      *prometheus.Desc
@@ -43,14 +66,17 @@ type Stater interface {
 
 // NewCollector creates a new Collector to collect stats from pgxpool.
 func NewCollector(stater Stater, labels map[string]string) *Collector {
-	return newCollector(&staterWrapper{stater}, labels)
+	fn := func() pgxStat { return stater.Stat() }
+	return newCollector(fn, labels)
 }
 
-// newCollector is an internal only constructor for a Collect that uses a wrapped Stater or other provider of stats.
-// labels are provided as prometheus.Labels to each metric and may be nil. A label is recommended when an application uses more than one pgxpool.Pool to enable differentiation between them.
-func newCollector(stater stater, labels map[string]string) *Collector {
+// newCollector is an internal only constructor for a Collecter. It accepts
+// a staterFunc which provides a closure for requesting pgxpool.Stat metrics.
+// Labels to each metric and may be nil. A label is recommended when an
+// application uses more than one pgxpool.Pool to enable differentiation between them.
+func newCollector(fn staterFunc, labels map[string]string) *Collector {
 	return &Collector{
-		stater: stater,
+		stat: fn,
 		acquireCountDesc: prometheus.NewDesc(
 			"pgxpool_acquire_count",
 			"Cumulative count of successful acquires from the pool.",
@@ -97,7 +123,7 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c *Collector) Collect(metrics chan<- prometheus.Metric) {
-	stats := c.stater.stat()
+	stats := &statWrapper{c.stat()}
 	metrics <- prometheus.MustNewConstMetric(
 		c.acquireCountDesc,
 		prometheus.CounterValue,
@@ -145,35 +171,10 @@ func (c *Collector) Collect(metrics chan<- prometheus.Metric) {
 	)
 }
 
-// stater is an internal only version of Stater making it easier to mock or use alternatives to the pgxpool.Stat struct.
-type stater interface {
-	stat() stat
-}
-
-// stat is an interface version of the pgxpool.Stat struct which also returns float64 values for ease of use with Prometheus.
-type stat interface {
-	acquireCount() float64
-	acquireDuration() float64
-	acquiredConns() float64
-	canceledAcquireCount() float64
-	constructingConns() float64
-	emptyAcquireCount() float64
-	idleConns() float64
-	maxConns() float64
-	totalConns() float64
-}
-
-// staterWrapper converts a Stater into a stater and is the concrete implementation of the stater interface that uses a real pgxpool.Pool.
-type staterWrapper struct {
-	stater Stater
-}
-
-func (w *staterWrapper) stat() stat {
-	return &statWrapper{w.stater.Stat()}
-}
-
+// statWrapper is convenience struct that deals with converting
+// pgxpool.Stat values to float64 for use by prometheus.
 type statWrapper struct {
-	stats *pgxpool.Stat
+	stats pgxStat
 }
 
 func (w *statWrapper) acquireCount() float64 {
