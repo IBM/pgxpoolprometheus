@@ -13,26 +13,28 @@ This is a [Prometheus Collector](https://pkg.go.dev/github.com/prometheus/client
 package main
 
 import (
-    "log"
-    "http"
+	"context"
+	"log"
+	"net/http"
+	"os"
 
-    "github.com/prometheus/client_golang/prometheus"
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-    "github.com/IBM/pgxpoolprometheus"
-
+	"github.com/IBM/pgxpoolprometheus"
 )
 
 func main() {
-    pool, err := pgxpool.Connect(context.Background(), os.Getenv("DATABASE_URL"))
-    if err != nil {
-        log.Fatal(err)
-    }
+	pool, err := pgxpool.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    collector := pgxpoolprometheus.NewCollector(pool, map[string][string]{"db_name": "my_db"})
-    prometheus.MustRegister(collector)
+	collector := pgxpoolprometheus.NewCollector(pool, map[string]string{"db_name": "my_db"})
+	prometheus.MustRegister(collector)
 
-    http.Handle("/metrics", promhttp.Handler())
+	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 ```
