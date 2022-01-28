@@ -9,7 +9,7 @@ This is a [Prometheus Collector](https://pkg.go.dev/github.com/prometheus/client
 
 ## Example Usage
 
-```
+```go
 package main
 
 import (
