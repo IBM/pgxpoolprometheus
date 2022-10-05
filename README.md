@@ -5,7 +5,7 @@
 
 # Prometheus Collector for PGX Pool
 
-This is a [Prometheus Collector](https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#Collector) for [PGX Pool](https://pkg.go.dev/github.com/jackc/pgx/v4/pgxpool).
+This is a [Prometheus Collector](https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#Collector) for [PGX Pool](https://pkg.go.dev/github.com/jackc/pgx/v5/pgxpool).
 
 ## Example Usage
 
@@ -18,7 +18,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -41,7 +41,7 @@ func main() {
 
 ## Metrics Collected
 
-This collector provides metrics for all the stats produced by [pgxpool.Stat](https://pkg.go.dev/github.com/jackc/pgx/v4/pgxpool#Stat) all prefixed with `pgxpool`:
+This collector provides metrics for all the stats produced by [pgxpool.Stat](https://pkg.go.dev/github.com/jackc/pgx/v5/pgxpool#Stat) all prefixed with `pgxpool`:
 
 | Name                           | Description                                                                                                                                |
 |--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
