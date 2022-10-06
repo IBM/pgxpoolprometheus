@@ -71,6 +71,15 @@ func (m *pgxStatMock) MaxConns() int32 {
 func (m *pgxStatMock) TotalConns() int32 {
 	return m.Called().Get(0).(int32)
 }
+func (m *pgxStatMock) NewConnsCount() int64 {
+	return m.Called().Get(0).(int64)
+}
+func (m *pgxStatMock) MaxLifetimeDestroyCount() int64 {
+	return m.Called().Get(0).(int64)
+}
+func (m *pgxStatMock) MaxIdleDestroyCount() int64 {
+	return m.Called().Get(0).(int64)
+}
 
 type noOpStat struct{}
 
@@ -101,12 +110,21 @@ func (m noOpStat) MaxConns() int32 {
 func (m noOpStat) TotalConns() int32 {
 	return 0
 }
+func (m noOpStat) NewConnsCount() int64 {
+	return 0
+}
+func (m noOpStat) MaxLifetimeDestroyCount() int64 {
+	return 0
+}
+func (m noOpStat) MaxIdleDestroyCount() int64 {
+	return 0
+}
 
 func TestDescribeDescribesAllAvailableStats(t *testing.T) {
 	labelName := "testLabel"
 	labelValue := "testLabelValue"
 	labels := map[string]string{labelName: labelValue}
-	expectedDescriptorCount := 9
+	expectedDescriptorCount := 12
 	timeout := time.After(time.Second * 5)
 	stater := &mockStater{}
 	stater.On("Stat").Return(noOpStat{})
@@ -146,6 +164,9 @@ func TestCollectCollectsAllAvailableStats(t *testing.T) {
 	expectedIdleConns := float64(7)
 	expectedMaxConns := float64(8)
 	expectedTotalConns := float64(9)
+	expectedNewConnsCount := float64(10)
+	expectedMaxLifetimeDestroyCount := float64(11)
+	expectedMaxIdleDestroyCount := float64(12)
 
 	mockStats := &pgxStatMock{}
 	mockStats.On("AcquireCount").Return(int64(1))
@@ -157,7 +178,10 @@ func TestCollectCollectsAllAvailableStats(t *testing.T) {
 	mockStats.On("IdleConns").Return(int32(7))
 	mockStats.On("MaxConns").Return(int32(8))
 	mockStats.On("TotalConns").Return(int32(9))
-	expectedMetricCount := 9
+	mockStats.On("NewConnsCount").Return(int64(10))
+	mockStats.On("MaxLifetimeDestroyCount").Return(int64(11))
+	mockStats.On("MaxIdleDestroyCount").Return(int64(12))
+	expectedMetricCount := 12
 	timeout := time.After(time.Second * 5)
 	stater := &mockStater{}
 	stater.On("Stat").Return(mockStats)
@@ -196,6 +220,12 @@ func TestCollectCollectsAllAvailableStats(t *testing.T) {
 				assert.Equal(t, expectedMaxConns, *pb.GetGauge().Value)
 			case strings.Contains(description, "pgxpool_total_conns"):
 				assert.Equal(t, expectedTotalConns, *pb.GetGauge().Value)
+			case strings.Contains(description, "pgxpool_new_conns_count"):
+				assert.Equal(t, expectedNewConnsCount, *pb.GetCounter().Value)
+			case strings.Contains(description, "pgxpool_max_lifetime_destroy_count"):
+				assert.Equal(t, expectedMaxLifetimeDestroyCount, *pb.GetCounter().Value)
+			case strings.Contains(description, "pgxpool_max_idle_destroy_count"):
+				assert.Equal(t, expectedMaxIdleDestroyCount, *pb.GetCounter().Value)
 			default:
 				t.Errorf("Unexpected description: %s", description)
 			}
