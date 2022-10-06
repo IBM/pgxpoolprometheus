@@ -39,6 +39,9 @@ type pgxStat interface {
 	IdleConns() int32
 	MaxConns() int32
 	TotalConns() int32
+	NewConnsCount() int64
+	MaxLifetimeDestroyCount() int64
+	MaxIdleDestroyCount() int64
 }
 
 // staterFunc should return a struct that implements pgxStat.
@@ -57,6 +60,9 @@ type Collector struct {
 	idleConnsDesc            *prometheus.Desc
 	maxConnsDesc             *prometheus.Desc
 	totalConnsDesc           *prometheus.Desc
+	newConnsCount            *prometheus.Desc
+	maxLifetimeDestroyCount  *prometheus.Desc
+	maxIdleDestroyCount      *prometheus.Desc
 }
 
 // Stater is a provider of the Stat() function. Implemented by pgxpool.Pool.
@@ -112,6 +118,18 @@ func newCollector(fn staterFunc, labels map[string]string) *Collector {
 		totalConnsDesc: prometheus.NewDesc(
 			"pgxpool_total_conns",
 			"Total number of resources currently in the pool. The value is the sum of ConstructingConns, AcquiredConns, and IdleConns.",
+			nil, labels),
+		newConnsCount: prometheus.NewDesc(
+			"pgxpool_new_conns_count",
+			"Cumulative count of new connections opened.",
+			nil, labels),
+		maxLifetimeDestroyCount: prometheus.NewDesc(
+			"pgxpool_max_lifetime_destroy_count",
+			"Cumulative count of connections destroyed because they exceeded MaxConnLifetime. ",
+			nil, labels),
+		maxIdleDestroyCount: prometheus.NewDesc(
+			"pgxpool_max_idle_destroy_count",
+			"Cumulative count of connections destroyed because they exceeded MaxConnIdleTime.",
 			nil, labels),
 	}
 }
@@ -169,6 +187,21 @@ func (c *Collector) Collect(metrics chan<- prometheus.Metric) {
 		prometheus.GaugeValue,
 		stats.totalConns(),
 	)
+	metrics <- prometheus.MustNewConstMetric(
+		c.newConnsCount,
+		prometheus.CounterValue,
+		stats.newConnsCount(),
+	)
+	metrics <- prometheus.MustNewConstMetric(
+		c.maxLifetimeDestroyCount,
+		prometheus.CounterValue,
+		stats.maxLifetimeDestroyCount(),
+	)
+	metrics <- prometheus.MustNewConstMetric(
+		c.maxIdleDestroyCount,
+		prometheus.CounterValue,
+		stats.maxIdleDestroyCount(),
+	)
 }
 
 // statWrapper is convenience struct that deals with converting
@@ -203,4 +236,13 @@ func (w *statWrapper) maxConns() float64 {
 }
 func (w *statWrapper) totalConns() float64 {
 	return float64(w.stats.TotalConns())
+}
+func (w *statWrapper) newConnsCount() float64 {
+	return float64(w.stats.NewConnsCount())
+}
+func (w *statWrapper) maxLifetimeDestroyCount() float64 {
+	return float64(w.stats.MaxLifetimeDestroyCount())
+}
+func (w *statWrapper) maxIdleDestroyCount() float64 {
+	return float64(w.stats.MaxIdleDestroyCount())
 }
