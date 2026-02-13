@@ -42,18 +42,19 @@ func main() {
 
 This collector provides metrics for all the stats produced by [pgxpool.Stat](https://pkg.go.dev/github.com/jackc/pgx/v5/pgxpool#Stat) all prefixed with `pgxpool`:
 
-| Name                               | Description                                                                                                                                |
-|------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| pgxpool_acquire_count              | Cumulative count of successful acquires from the pool.                                                                                     |
-| pgxpool_acquire_duration_ns        | Total duration of all successful acquires from the pool in nanoseconds.                                                                    |
-| pgxpool_acquired_conns             | Number of currently acquired connections in the pool.                                                                                      |
-| pgxpool_canceled_acquire_count     | Cumulative count of acquires from the pool that were canceled by a context.                                                                |
-| pgxpool_constructing_conns         | Number of conns with construction in progress in the pool.                                                                                 |
-| pgxpool_empty_acquire              | Cumulative count of successful acquires from the pool that waited for a resource to be released or constructed because the pool was empty. |
-| pgxpool_idle_conns                 | Number of currently idle conns in the pool.                                                                                                |
-| pgxpool_max_conns                  | Maximum size of the pool.                                                                                                                  |
-| pgxpool_max_idle_destroy_count     | Cumulative count of connections destroyed because they exceeded MaxConnIdleTime.                                                           |
-| pgxpool_max_lifetime_destroy_count | Cumulative count of connections destroyed because they exceeded MaxConnLifetime.                                                           |
-| pgxpool_new_conns_count            | Cumulative count of new connections opened.                                                                                                | 
-| pgxpool_total_conns                | Total number of resources currently in the pool. The value is the sum of ConstructingConns, AcquiredConns, and IdleConns.                  |
+| Name                                    | Description                                                                                                                                |
+|-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| pgxpool_acquire_count                   | Cumulative count of successful acquires from the pool.                                                                                     |
+| pgxpool_acquire_duration_ns             | Total duration of all successful acquires from the pool in nanoseconds.                                                                    |
+| pgxpool_acquired_conns                  | Number of currently acquired connections in the pool.                                                                                      |
+| pgxpool_canceled_acquire_count          | Cumulative count of acquires from the pool that were canceled by a context.                                                                |
+| pgxpool_constructing_conns              | Number of conns with construction in progress in the pool.                                                                                 |
+| pgxpool_empty_acquire                   | Cumulative count of successful acquires from the pool that waited for a resource to be released or constructed because the pool was empty. |
+| pgxpool_empty_acquire_wait_time_seconds | Cumulative time waited for successful acquires from the pool for a resource to be released or constructed because the pool was empty.      | 
+| pgxpool_idle_conns                      | Number of currently idle conns in the pool.                                                                                                |
+| pgxpool_max_conns                       | Maximum size of the pool.                                                                                                                  |
+| pgxpool_max_idle_destroy_count          | Cumulative count of connections destroyed because they exceeded MaxConnIdleTime.                                                           |
+| pgxpool_max_lifetime_destroy_count      | Cumulative count of connections destroyed because they exceeded MaxConnLifetime.                                                           |
+| pgxpool_new_conns_count                 | Cumulative count of new connections opened.                                                                                                | 
+| pgxpool_total_conns                     | Total number of resources currently in the pool. The value is the sum of ConstructingConns, AcquiredConns, and IdleConns.                  |
 
