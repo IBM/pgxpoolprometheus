@@ -170,7 +170,7 @@ func TestCollectCollectsAllAvailableStats(t *testing.T) {
 	expectedNewConnsCount := float64(10)
 	expectedMaxLifetimeDestroyCount := float64(11)
 	expectedMaxIdleDestroyCount := float64(12)
-	expectedEmptyAcquireWaitTime := float64(13)
+	expectedEmptyAcquireWaitTime := float64(13e+09)
 
 	mockStats := &pgxStatMock{}
 	mockStats.On("AcquireCount").Return(int64(1))
@@ -215,7 +215,7 @@ func TestCollectCollectsAllAvailableStats(t *testing.T) {
 				assert.Equal(t, expectedCanceledAcquireCount, *pb.GetCounter().Value)
 			case strings.Contains(description, "pgxpool_constructing_conns"):
 				assert.Equal(t, expectedConstructingConns, *pb.GetGauge().Value)
-			case strings.Contains(description, "pgxpool_empty_acquire_wait_time_seconds"):
+			case strings.Contains(description, "pgxpool_empty_acquire_wait_time_ns"):
 				assert.Equal(t, expectedEmptyAcquireWaitTime, *pb.GetCounter().Value)
 			case strings.Contains(description, "pgxpool_empty_acquire"):
 				assert.Equal(t, expectedEmptyAcquireCount, *pb.GetCounter().Value)

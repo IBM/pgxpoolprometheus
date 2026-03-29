@@ -111,8 +111,8 @@ func newCollector(fn staterFunc, labels map[string]string) *Collector {
 			"Cumulative count of successful acquires from the pool that waited for a resource to be released or constructed because the pool was empty.",
 			nil, labels),
 		emptyAcquireWaitTimeDesc: prometheus.NewDesc(
-			"pgxpool_empty_acquire_wait_time_seconds",
-			"Cumulative time in seconds waited for successful acquires from the pool for a resource to be released or constructed because the pool was empty.",
+			"pgxpool_empty_acquire_wait_time_ns",
+			"Cumulative time in nanoseconds waited for successful acquires from the pool for a resource to be released or constructed because the pool was empty.",
 			nil, labels),
 		idleConnsDesc: prometheus.NewDesc(
 			"pgxpool_idle_conns",
@@ -241,7 +241,7 @@ func (w *statWrapper) emptyAcquireCount() float64 {
 	return float64(w.stats.EmptyAcquireCount())
 }
 func (w *statWrapper) emptyAcquireWaitTime() float64 {
-	return float64(w.stats.EmptyAcquireWaitTime()) / 1e9
+	return float64(w.stats.EmptyAcquireWaitTime())
 }
 func (w *statWrapper) idleConns() float64 {
 	return float64(w.stats.IdleConns())
