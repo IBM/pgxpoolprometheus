@@ -50,6 +50,7 @@ This collector provides metrics for all the stats produced by [pgxpool.Stat](htt
 | pgxpool_canceled_acquire_count     | Cumulative count of acquires from the pool that were canceled by a context.                                                                |
 | pgxpool_constructing_conns         | Number of conns with construction in progress in the pool.                                                                                 |
 | pgxpool_empty_acquire              | Cumulative count of successful acquires from the pool that waited for a resource to be released or constructed because the pool was empty. |
+| pgxpool_empty_acquire_wait_time_ns | Cumulative time waited for successful acquires from the pool for a resource to be released or constructed because the pool was empty.      | 
 | pgxpool_idle_conns                 | Number of currently idle conns in the pool.                                                                                                |
 | pgxpool_max_conns                  | Maximum size of the pool.                                                                                                                  |
 | pgxpool_max_idle_destroy_count     | Cumulative count of connections destroyed because they exceeded MaxConnIdleTime.                                                           |
